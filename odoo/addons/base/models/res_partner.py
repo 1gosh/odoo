@@ -885,7 +885,7 @@ class Partner(models.Model):
                 }
 
     @api.depends('complete_name', 'email', 'vat', 'state_id', 'country_id', 'commercial_company_name')
-    @api.depends_context('show_address', 'partner_show_db_id', 'address_inline', 'show_email', 'show_vat', 'lang')
+    @api.depends_context('show_address', 'partner_show_db_id', 'address_inline', 'show_email', 'show_vat', 'show_phone', 'lang')
     def _compute_display_name(self):
         for partner in self:
             name = partner.with_context(lang=self.env.lang)._get_complete_name()
@@ -898,7 +898,9 @@ class Partner(models.Model):
                 splitted_names = name.split("\n")
                 name = ", ".join([n for n in splitted_names if n.strip()])
             if partner._context.get('show_email') and partner.email:
-                name = f"{name} <{partner.email}>"
+                name = name + "\n" + partner.email
+            if partner._context.get('show_phone') and partner.phone:
+                name = name + "\n" + partner.phone
             if partner._context.get('show_vat') and partner.vat:
                 name = f"{name} ‒ {partner.vat}"
 

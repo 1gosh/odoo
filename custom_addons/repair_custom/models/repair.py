@@ -1,7 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from random import randint
-
+import uuid
 from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero, clean_context
@@ -14,6 +14,33 @@ MAP_REPAIR_TO_PICKING_LOCATIONS = {
     'recycle_location_id': 'default_recycle_location_dest_id',
 }
 
+# Ajouts
+
+class RepairPickupLocation(models.Model):
+    _name = 'repair.pickup.location'
+    _description = 'Repair Pickup Location'
+
+    name = fields.Char(string="Nom du lieu", required=True)
+    street = fields.Char(string="Rue")
+    street2 = fields.Char(string="Rue (complément)")
+    city = fields.Char(string="Ville")
+    zip = fields.Char(string="Code postal")
+    country_id = fields.Many2one('res.country', string="Pays")
+    contact_id = fields.Many2one('res.partner', string="Contact associé")
+    company_id = fields.Many2one(
+        'res.company',
+        string="Société",
+        default=lambda self: self.env.company,
+    )
+
+    def _compute_display_name(self):
+        for location in self:
+            if location.city:
+                location.display_name = f"{location.name} – {location.city}"
+            else:
+                location.display_name = location.name
+
+#########
 
 class Repair(models.Model):
     """ Repair Orders """
@@ -26,6 +53,53 @@ class Repair(models.Model):
     @api.model
     def _default_picking_type_id(self):
         return self._get_picking_type().get((self.env.company, self.env.user))
+
+    # Ajouts
+
+    @api.model
+    def _default_location(self):
+       return self.env['repair.pickup.location'].search([('name', '=', 'Boutique')], limit=1).id
+
+    device_picture = fields.Image()
+    pickup_location_id = fields.Many2one(
+        'repair.pickup.location',
+        string="Lieu de prise en charge",
+        help="Endroit où l'appareil a été récupéré (boutique ou atelier).",
+        required=True,
+        default=_default_location
+    )
+    multiple_devices = fields.Boolean(string="Plusieurs appareils")
+    repair_warranty = fields.Selection([('aucune', 'Aucune'), ('sav', 'SAV'), ('sar', 'SAR'),], string="Sous garantie", default='aucune')
+    additional_notes = fields.Text(string="Notes additionnelles")
+    price = fields.Float(string="Tarif")
+
+    technician_user_id = fields.Many2one(
+    'res.users',
+    string="Technicien (Utilisateur)",
+    readonly=True,
+    help="Utilisateur Odoo ayant démarré la réparation."
+    )
+
+    technician_employee_id = fields.Many2one(
+        'hr.employee',
+        string="Technicien",
+        readonly=True,
+        help="Employé ayant démarré la réparation."
+    )
+
+    tracking_token = fields.Char('Tracking Token', default=lambda self: uuid.uuid4().hex, readonly=True)
+    tracking_url = fields.Char(
+    'Tracking URL',
+    compute="_compute_tracking_url"
+    )
+
+    @api.depends('tracking_token')
+    def _compute_tracking_url(self):
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        for rec in self:
+            rec.tracking_url = f"{base_url}/repair/tracking/{rec.tracking_token}"
+
+    #################
 
     # Common Fields
     name = fields.Char(
@@ -310,6 +384,11 @@ class Repair(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        if vals.get('state') == 'draft':
+            vals.update({
+                'technician_user_id': False,
+                'technician_employee_id': False,
+            })
         if vals.get('picking_type_id'):
             picking_type = self.env['stock.picking.type'].browse(vals.get('picking_type_id'))
             for repair in self:
@@ -485,14 +564,32 @@ class Repair(models.Model):
                 'context': ctx,
             }
 
-        return self.action_repair_done()
+        return self.action_repair_done()         
 
     def action_repair_start(self):
-        """ Writes repair order state to 'Under Repair'
-        """
         if self.filtered(lambda repair: repair.state != 'confirmed'):
             self._action_repair_confirm()
-        return self.write({'state': 'under_repair'})
+
+        res = self.write({'state': 'under_repair'})
+
+        user = self.env.user
+        employee = self.env['hr.employee'].search([('user_id', '=', user.id)], limit=1)
+
+        self.write({
+            'technician_user_id': user.id,
+            'technician_employee_id': employee.id if employee else False,
+        })
+
+        for repair in self:
+            repair.message_post(
+            body=_(
+                "<b>%s</b> a démarré la réparation le %s."
+            ) % (employee.name if employee else user.name, fields.Datetime.now().strftime('%d/%m/%Y à %H:%M')),
+            message_type="comment",
+            subtype_xmlid="mail.mt_note",  # 🔧 empêche l'envoi d'email
+        )
+
+        return res
 
     def action_unreserve(self):
         return self.move_ids.filtered(lambda m: m.state in ('assigned', 'partially_available'))._do_unreserve()

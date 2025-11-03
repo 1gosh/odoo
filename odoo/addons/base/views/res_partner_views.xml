@@ -189,20 +189,20 @@
                             <field id="company" options="{'line_breaks': False}" widget="text" class="text-break" name="name" default_focus="1" placeholder="e.g. Lumber Inc" invisible="not is_company" required="type == 'contact'"/>
                             <field id="individual" options="{'line_breaks': False}" widget="text" class="text-break" name="name" default_focus="1" placeholder="e.g. Brandom Freeman" invisible="is_company" required="type == 'contact'"/>
                         </h1>
-                        <div class="o_row">
-                            <field name="parent_id"
-                                widget="res_partner_many2one"
-                                placeholder="Company Name..."
-                                domain="[('is_company', '=', True)]" context="{'default_is_company': True, 'show_vat': True, 'default_user_id': user_id}"
-                                invisible="((is_company and not parent_id) or company_name) and company_name != ''"/>
-                                <field name="company_name" invisible="not company_name or company_name == '' or is_company"/>
-                                <button name="create_company" icon="fa-plus-square" string="Create company"
-                                    type="object" class="oe_edit_only btn-link"
-                                    invisible="is_company or company_name == '' or not company_name"/>
-                        </div>
                     </div>
 
                     <group>
+                        <group>
+                            <field name="phone" widget="phone"/>
+                            <field name="mobile" widget="phone"/>
+                            <field name="user_ids" invisible="1"/>
+                            <field name="email" widget="email" context="{'gravatar_image': True}" required="user_ids"/>
+                            <field name="website" string="Website" widget="url" placeholder="e.g. https://www.odoo.com"/>
+                            <field name="title" options='{"no_open": True}' placeholder="e.g. Mister"
+                                invisible="is_company"/>
+                            <field name="active_lang_count" invisible="1"/>
+                            <field name="lang" invisible="active_lang_count &lt;= 1"/>
+                        </group>
                         <group>
                             <span class="o_form_label o_td_label" name="address_name">
                                 <field name="type" invisible="is_company" readonly="user_ids" required="not is_company" class="fw-bold"/>
@@ -225,21 +225,19 @@
                                 </div>
                             </div>
                             <field name="vat" placeholder="e.g. BE0477472701" readonly="parent_id"/>
-                        </group>
-                        <group>
-                            <field name="function" placeholder="e.g. Sales Director"
-                                invisible="is_company"/>
-                            <field name="phone" widget="phone"/>
-                            <field name="mobile" widget="phone"/>
-                            <field name="user_ids" invisible="1"/>
-                            <field name="email" widget="email" context="{'gravatar_image': True}" required="user_ids"/>
-                            <field name="website" string="Website" widget="url" placeholder="e.g. https://www.odoo.com"/>
-                            <field name="title" options='{"no_open": True}' placeholder="e.g. Mister"
-                                invisible="is_company"/>
-                            <field name="active_lang_count" invisible="1"/>
-                            <field name="lang" invisible="active_lang_count &lt;= 1"/>
                             <field name="category_id" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"
                                    placeholder='e.g. "B2B", "VIP", "Consulting", ...'/>
+                            <field name="parent_id"
+                                widget="res_partner_many2one"
+                                placeholder="Company Name..."
+                                domain="[('is_company', '=', True)]" context="{'default_is_company': True, 'show_vat': True, 'default_user_id': user_id}"
+                                invisible="((is_company and not parent_id) or company_name) and company_name != ''"/>
+                                <field name="company_name" invisible="not company_name or company_name == '' or is_company"/>
+                                <button name="create_company" icon="fa-plus-square" string="Create company"
+                                    type="object" class="oe_edit_only btn-link"
+                                    invisible="is_company or company_name == '' or not company_name"/>
+                            <field name="function" placeholder="e.g. Sales Director"
+                                invisible="not parent_id or is_company"/>
                         </group>
                     </group>
 
