@@ -32,6 +32,8 @@ class RepairDeviceModel(models.Model):
     def _compute_display_name(self):
         for rec in self:
             rec.display_name = f"{rec.brand_id.name or ''} {rec.name or ''}".strip()
+            if rec.variant:
+                rec.display_name += f" ({rec.variant})"
 
     display_name = fields.Char(
         "Nom complet", compute="_compute_display_name", store=True,
@@ -130,25 +132,6 @@ class RepairDeviceCategory(models.Model):
         else:
             for record in self:
                 record.display_name = record.name
-
-    # @api.model
-    # def name_create(self, name):
-    #     category = self.create({"name": name})
-    #     return category.id, category.display_name
-
-
-    # @api.ondelete(at_uninstall=False)
-
-    # class RepairOrderModel(models.Model):
-    # _inherit = "repair.order"
-
-    # device_id = fields.Many2one(
-    #     'repair.device',
-    #     string="Lieu de prise en charge",
-    #     help="Endroit où l'appareil a été récupéré (boutique ou atelier).",
-    #     required=True,
-    #     default=_default_location
-    # )
 
 
 class RepairDeviceUnit(models.Model):

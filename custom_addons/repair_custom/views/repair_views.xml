@@ -13,8 +13,8 @@
                         <field name="user_id" widget="many2one_avatar_user" domain="[('share', '=', False)]"/>
                         <div>
                             <field name="name" display="full" class="o_text_block o_text_bold"/>
-                            <field name="device_id" class="o_text_block"/>
-                            <field name="schedule_date" widget="date" class="d-block"/>
+                            <!-- <field name="product_id" class="o_text_block"/> -->
+                            <!-- <field name="schedule_date" widget="date" class="d-block"/> -->
                         </div>
                     </div>
                 </templates>
@@ -38,20 +38,13 @@
                     decoration-danger="state == 'cancel'" decoration-muted="state == 'draft'" readonly="True"
                     width="50" on_change="1" />
                 <field name="technician_employee_id" optional="show" />
-                <field name="device_id" readonly="1" optional="show" string="Appareil" width="200"
-                    on_change="1" />
+                <!-- <field name="product_id" readonly="1" optional="show" string="Appareil" width="200"
+                    on_change="1" /> -->
                 <field name="partner_id" readonly="1" optional="show" string="Client" width="100" on_change="1" />
                 <field name="pickup_location_id" optional="show" readonly="True" />
                 <field name="repair_warranty" optional="show" readonly="True" />
                 <field name="multiple_devices" optional="show" readonly="True" />
                 <field name="additional_notes" optional="show" />
-                <!-- <field name="parts_availability_state" column_invisible="True" /> -->
-                <!-- <field name="product_qty" optional="hide" string="Quantité" readonly="state != 'draft'" />
-                <field name="user_id" optional="hide" widget="many2one_avatar_user" can_create="True"
-                    can_write="True" /> -->
-                <!-- <field name="picking_id" optional="hide" on_change="1" can_create="True" can_write="True" />
-                <field name="is_returned" optional="hide" />
-                <field name="location_id" optional="hide" on_change="1" can_create="True" can_write="True" /> -->
                 <field name="activity_exception_decoration" widget="activity_exception" />
             </tree>
         </field>
@@ -63,19 +56,14 @@
         <field name="arch" type="xml">
             <form string="Ordre de réparation">
                 <!-- Champs invisibles conservés strictement tels quels -->
-                <field name="unreserve_visible" invisible="1"/>
-                <field name="reserve_visible" invisible="1"/>
                 <field name="company_id" invisible="1"/>
                 <field name="sale_order_id" invisible="1"/>
                 <field name="sale_order_line_id" invisible="1"/>
                 <field name="technician_user_id" force_save="1" readonly="1" invisible="1"/>
-                <field name="parts_availability_state" invisible="True"/>
                 <header>
                     <button name="action_validate" invisible="state != 'draft'" type="object" string="Confirmer la réparation" class="oe_highlight" data-hotkey="v"/>
                     <button name="action_repair_start" invisible="state != 'confirmed'" type="object" string="Commencer la réparation" class="oe_highlight" data-hotkey="q"/>
                     <button name="action_repair_end" invisible="state != 'under_repair'" type="object" string="Terminer la réparation" class="oe_highlight" data-hotkey="x"/>
-                    <button name="action_assign" invisible="True" string="Vérifier la disponibilité" type="object"/>
-                    <button name="action_unreserve" type="object" string="Annuler la réservation" invisible="not unreserve_visible" data-hotkey="w"/>
                     <button name="action_create_sale_order" type="object" string="Créer le devis" invisible="False"/>
                     <button name="action_repair_cancel" string="Annuler la réparation" type="object" invisible="state in ('done', 'cancel')" data-hotkey="l"/>
                     <button name="action_repair_cancel_draft" invisible="False" string="Marquer comme brouillon" type="object" data-hotkey="z"/>
@@ -106,7 +94,6 @@
                                 can_create="True"
                                 can_write="True"/>
                             <field name="device_id"/>
-                            <field name="serial_number"/>
                             <field name="tag_ids"
                                    widget="many2many_tags"
                                    options="{'color_field': 'color', 'no_create_edit': True}"
@@ -131,7 +118,7 @@
                     </p>
                     <notebook>
                         <page string="Notes de la réparation" name="repair_notes">
-                            <field name="internal_notes" placeholder="Ajouter des notes internes." widget="html"/>
+                            <!-- <field name="internal_notes" placeholder="Ajouter des notes internes." widget="html"/> -->
                         </page>
                     </notebook>
                 </sheet>
@@ -146,7 +133,7 @@
             <kanban class="o_kanban_mobile" sample="1" quick_create="false">
                 <field name="company_id" invisible="1"/>
                 <field name="name"/>
-                <field name="device_id"/>
+                <!-- <field name="product_id"/> -->
                 <field name="partner_id"/>
                 <field name="state"/>
                 <field name="activity_state"/>
@@ -186,7 +173,7 @@
         <field name="arch" type="xml">
             <search string="Search Repair Orders">
                 <!-- <field name="name" string="Repair Order" filter_domain="['|', ('name', 'ilike', self), ('product_id', 'ilike', self)]"/> -->
-                <field name="device_id"/>
+                <!-- <field name="product_id"/> -->
                 <field name="partner_id" filter_domain="[('partner_id', 'child_of', self)]"/>
                 <field name="sale_order_id"/>
                 <filter string="New" domain="[('state', '=', 'draft')]" name="filter_draft" />
@@ -194,10 +181,8 @@
                 <filter string="Under Repair" name="filter_under_repair" domain="[('state', '=', 'under_repair')]"/>
                 <filter string="Repaired" name="filter_done" domain="[('state', '=', 'done')]"/>
                 <filter string="Cancelled" name="filter_cancel" domain="[('state', '=', 'cancel')]"/>
-                <filter string="Returned" name="returned" domain="[('picking_id', '!=', False), ('picking_id.state', '=', 'done')]"/>
                 <separator/>
-                <filter string="Ready" name="ready" domain="[('state', 'in', ('confirmed', 'under_repair')),('is_parts_available', '=', True)]" invisible="True"/>
-                <filter string="Late" name="filter_late" domain="[('state', 'in', ('confirmed', 'under_repair')), '|', ('schedule_date', '&lt;', context_today().strftime('%Y-%m-%d')), ('is_parts_late', '=', True)]"/>
+                <filter string="Ready" name="ready" domain="[('state', 'in', 'confirmed')]" invisible="True"/>
                 <filter name="filter_create_date" date="create_date"/>
                 <separator/>
                 <filter invisible="1" string="Late Activities" name="activities_overdue"
@@ -223,7 +208,7 @@
         <field name="arch" type="xml">
             <graph string="Repair Orders" sample="1">
                 <field name="create_date"/>
-                <field name="device_id"/>
+                <!-- <field name="product_id"/> -->
             </graph>
         </field>
     </record>
@@ -234,7 +219,7 @@
         <field name="arch" type="xml">
             <pivot string="Repair Orders" sample="1">
                 <field name="create_date" type="row"/>
-                <field name="device_id" type="col"/>
+                <!-- <field name="product_id" type="col"/> -->
             </pivot>
         </field>
     </record>
@@ -272,17 +257,6 @@
             <field name="res_model">repair.order</field>
             <field name="view_mode">tree,kanban,graph,pivot,form</field>
             <field name="view_id" ref="view_repair_graph"/>
-        </record>
-
-        <record id="action_picking_repair" model="ir.actions.act_window">
-            <field name="name">Repair Orders</field>
-            <field name="type">ir.actions.act_window</field>
-            <field name="res_model">repair.order</field>
-            <field name="view_mode">tree,kanban,form</field>
-            <field name="view_id" eval="False"/>
-            <field name="search_view_id" ref="view_repair_order_form_filter"/>
-            <field name="domain">[('picking_type_id', '=', active_id)]</field>
-            <field name="context">{'default_picking_type_id': active_id}</field>
         </record>
 
         <record id="view_repair_tag_form" model="ir.ui.view">
