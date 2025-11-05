@@ -13,7 +13,7 @@
                         <field name="user_id" widget="many2one_avatar_user" domain="[('share', '=', False)]"/>
                         <div>
                             <field name="name" display="full" class="o_text_block o_text_bold"/>
-                            <field name="product_id" class="o_text_block"/>
+                            <field name="device_id" class="o_text_block"/>
                             <field name="schedule_date" widget="date" class="d-block"/>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
                 <field name="company_id" column_invisible="True"/>
                 <!-- <field name="company_id" column_invisible="True" on_change="1" /> -->
                 <field name="priority" optional="show" widget="priority" nolabel="1" />
-                <field name="create_date" optional="show" string="Date d'entrée" readonly="True"
+                <field name="entry_date" optional="show" string="Date d'entrée" readonly="True"
                     widget="datetime" options="{'show_time':false}" />
                 <!-- <field name="name" optional="hide" readonly="True" string="Ref. Réparation" /> -->
                 <field name="state" optional="show" widget="badge" decoration-success="state == 'done'"
@@ -38,7 +38,7 @@
                     decoration-danger="state == 'cancel'" decoration-muted="state == 'draft'" readonly="True"
                     width="50" on_change="1" />
                 <field name="technician_employee_id" optional="show" />
-                <field name="product_id" readonly="1" optional="show" string="Appareil" width="200"
+                <field name="device_id" readonly="1" optional="show" string="Appareil" width="200"
                     on_change="1" />
                 <field name="partner_id" readonly="1" optional="show" string="Client" width="100" on_change="1" />
                 <field name="pickup_location_id" optional="show" readonly="True" />
@@ -62,8 +62,14 @@
         <field name="model">repair.order</field>
         <field name="arch" type="xml">
             <form string="Ordre de réparation">
+                <!-- Champs invisibles conservés strictement tels quels -->
                 <field name="unreserve_visible" invisible="1"/>
                 <field name="reserve_visible" invisible="1"/>
+                <field name="company_id" invisible="1"/>
+                <field name="sale_order_id" invisible="1"/>
+                <field name="sale_order_line_id" invisible="1"/>
+                <field name="technician_user_id" force_save="1" readonly="1" invisible="1"/>
+                <field name="parts_availability_state" invisible="True"/>
                 <header>
                     <button name="action_validate" invisible="state != 'draft'" type="object" string="Confirmer la réparation" class="oe_highlight" data-hotkey="v"/>
                     <button name="action_repair_start" invisible="state != 'confirmed'" type="object" string="Commencer la réparation" class="oe_highlight" data-hotkey="q"/>
@@ -73,68 +79,56 @@
                     <button name="action_create_sale_order" type="object" string="Créer le devis" invisible="False"/>
                     <button name="action_repair_cancel" string="Annuler la réparation" type="object" invisible="state in ('done', 'cancel')" data-hotkey="l"/>
                     <button name="action_repair_cancel_draft" invisible="False" string="Marquer comme brouillon" type="object" data-hotkey="z"/>
-                    <!-- <button string="Imprimer" type="action" name="repair_templates_repair_order" invisible="state == 'draft'" class="btn-info"/> -->
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,under_repair,done" on_change="1"/>
                 </header>
-                <sheet string="Ordre de réparation">
-                    <div class="oe_button_box" name="button_box">
-                        <!-- No groups attribute on the next button as "stock.group_stock_user" is needed for Repair, and as this group is granted 'sale.order' read/write accesses in sale_stock module (forcefully loaded as transitive dependency) -->
-                        <!-- <button name="action_view_sale_order" type="object" string="Commande client" icon="fa-dollar" class="oe_stat_button" invisible="not sale_order_id">
-                            <div class="o_field_widget o_stat_info">
-                                <span class="o_stat_value">
-                                    <field name="sale_order_id" widget="statinfo" nolabel="1" class="mr4"/>
-                                </span>
-                                <span class="o_stat_text">Commande client</span>
-                            </div>
-                        </button> -->
-                        <!-- <button class="oe_stat_button" name="action_view_purchase_orders" type="object" icon="fa-credit-card" invisible="purchase_count == 0 or state == 'draft'">
-                            <div class="o_field_widget o_stat_info">
-                                <field name="purchase_count" string="Bons de commande fournisseur" widget="statinfo"/>
-                            </div>
-                        </button> -->
-                        <!-- <button name="528" type="action" string="Mouvements de produits" class="oe_stat_button" icon="fa-exchange" invisible="state not in ['done', 'cancel']"/> -->
-                    </div>
+                <sheet>
                     <div class="oe_title">
-                        <label class="o_form_label" for="name"/>
+                        <label class="o_form_label" for="entry_date"/>
                         <h1 class="d-flex">
-                            <field name="name"/>
-                    <field name="device_picture" widget="image" class="ml-3 mb-5 h4" options="{'convert_to_webp':true,'zoom':true,'size':[0,90]}" invisible="not device_picture and state != 'draft'"/>
+                            <!-- <field name="priority" widget="priority" class="me-3"/> -->
+                            <field readonly="state != 'draft'" name="entry_date" string="Date d'entrée"/>
+                            <!-- <field name="device_picture" widget="image" class="ml-3 mb-5 h4"
+                                options="{'convert_to_webp':true,'zoom':true,'size':[0,90]}"
+                                invisible="not device_picture and state != 'draft'" /> -->
+                            <!-- <field class="float-end" name="name"/> -->
                         </h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="picking_product_ids" invisible="1"/>
-                            <field name="picking_product_id" invisible="1"/>
-                            <field name="tracking" invisible="1" readonly="True"/>
-                            <field name="company_id" invisible="1"/>
-                            <field name="sale_order_id" invisible="1"/>
-                            <field name="sale_order_line_id" invisible="1"/>
-                            <!-- <field name="repair_request" invisible="not sale_order_line_id"/> -->
-                            <field name="create_date" force_save="0" readonly="False" required="False" string="Date d'entrée" options="{'condensed':false,'show_time':false,'show_seconds':false}" widget="datetime"/>
-                            <field name="partner_id" widget="res_partner_many2one" context="{'res_partner_search_mode': 'customer', 'show_email': True, 'show_phone': True}" readonly="state != 'draft'" force_save="1" options="{'no_quick_create':true}" required="True" on_change="1" can_create="True" can_write="True"/>
-                            <field name="product_id" readonly="state != 'draft'" force_save="1" required="True" on_change="1" can_create="True" can_write="True"/>
-                            <!-- <field name="x_studio_many2one_field_5ec_1j777fnf   5" options="{'create_name_field':'complete_name','no_create':true}" string="Type d'appareil" required="True" force_save="1" readonly="state != 'draft'" can_create="True" can_write="True"/> -->
-                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" force_save="1" placeholder="Entrer les pannes" readonly="state != 'draft'" required="True" string="Pannes" can_create="True" can_write="True"/>
-                            <!-- <label for="lot_id" invisible="tracking not in ['serial', 'lot']"/> -->
-                            <div class="o_row" invisible="not product_id"></div>
-                            <!-- <field name="picking_id" invisible="not is_returned" options="{'no_create': True}" on_change="1" can_create="True" can_write="True"/> -->
+                        <group> 
+                            <field class="partner_custom" name="partner_id"
+                                widget="res_partner_many2one"
+                                context="{'res_partner_search_mode': 'customer', 'show_email': True, 'show_phone': True}"
+                                readonly="state != 'draft'"
+                                force_save="1"
+                                options="{'no_quick_create':true}"
+                                required="True"
+                                on_change="1"
+                                can_create="True"
+                                can_write="True"/>
+                            <field name="device_id"/>
+                            <field name="serial_number"/>
+                            <field name="tag_ids"
+                                   widget="many2many_tags"
+                                   options="{'color_field': 'color', 'no_create_edit': True}"
+                                   force_save="1"
+                                   placeholder="Entrer les pannes"
+                                   readonly="state != 'draft'"
+                                   required="True"
+                                   string="Pannes"
+                                   can_create="True"
+                                   can_write="True"/>
                         </group>
                         <group>
-                            <!-- Original: x_studio_plusieurs_appareils -->
                             <field name="multiple_devices" widget="boolean_toggle" force_save="1" readonly="state != 'draft'"/>
-                            <!-- Original: x_studio_garantie -->
                             <field name="repair_warranty" required="False" force_save="1" readonly="state != 'draft'"/>
-                            <field name="pickup_location_id" placeholder="Sélectionner un lieu..." readonly="state not in ['draft']"/>                            <!-- Original: x_studio_technicien -->
-                            <!-- Original: x_studio_tarif -->   
-                            <field name="technician_user_id" force_save="1" readonly="1" invisible="1"/>
-                            <field name="technician_employee_id" readonly="1"/>                         
-                            <!-- <field name="price" options="{'human_readable':false,'no_symbol':false,'hide_trailing_zeros':true}" widget="integer" force_save="0" readonly="False" required="state == 'confirmed'"/> -->
-                            <field name="parts_availability_state" invisible="True"/>
+                            <field name="pickup_location_id" placeholder="Sélectionner un lieu..." readonly="state not in ['draft']"/>
+                            <field name="technician_employee_id" readonly="1"/>
                             <field name="additional_notes" required="False" placeholder="Écrire ici ..." string="Notes"/>
-                            <!-- <field name="picking_type_id" options="{'no_create': True}" readonly="state in ('done', 'cancel')" invisible="not picking_type_visible" on_change="1" can_create="True" can_write="True"/> -->
-                            <!-- <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/> -->
                         </group>
                     </group>
+                    <p class="text-muted small">
+                        Réf. <field name="name" readonly="1" nolabel="1" class="d-inline"/>
+                    </p>
                     <notebook>
                         <page string="Notes de la réparation" name="repair_notes">
                             <field name="internal_notes" placeholder="Ajouter des notes internes." widget="html"/>
@@ -152,7 +146,7 @@
             <kanban class="o_kanban_mobile" sample="1" quick_create="false">
                 <field name="company_id" invisible="1"/>
                 <field name="name"/>
-                <field name="product_id"/>
+                <field name="device_id"/>
                 <field name="partner_id"/>
                 <field name="state"/>
                 <field name="activity_state"/>
@@ -170,7 +164,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-6 text-muted">
-                                    <span><t t-esc="record.product_id.value"/></span>
+                                    <!-- <span><t t-esc="record.product_id.value"/></span> -->
                                     <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
                                 </div>
                                 <div class="col-6">
@@ -191,8 +185,8 @@
         <field name="model">repair.order</field>
         <field name="arch" type="xml">
             <search string="Search Repair Orders">
-                <field name="name" string="Repair Order" filter_domain="['|', ('name', 'ilike', self), ('product_id', 'ilike', self)]"/>
-                <field name="product_id"/>
+                <!-- <field name="name" string="Repair Order" filter_domain="['|', ('name', 'ilike', self), ('product_id', 'ilike', self)]"/> -->
+                <field name="device_id"/>
                 <field name="partner_id" filter_domain="[('partner_id', 'child_of', self)]"/>
                 <field name="sale_order_id"/>
                 <filter string="New" domain="[('state', '=', 'draft')]" name="filter_draft" />
@@ -215,7 +209,7 @@
                     domain="[('my_activity_date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))]"/>
                 <group expand="0" string="Group By">
                     <filter string="Customer" name="partner" domain="[]" context="{'group_by': 'partner_id'}"/>
-                    <filter string="Product" name="product" domain="[]" context="{'group_by': 'product_id'}"/>
+                    <!-- <filter string="Product" name="product" domain="[]" context="{'group_by': 'product_id'}"/> -->
                     <filter string="Status" name="status" domain="[]" context="{'group_by': 'state'}"/>
                     <filter string="Company" name="company" domain="[]" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
                 </group>
@@ -229,7 +223,7 @@
         <field name="arch" type="xml">
             <graph string="Repair Orders" sample="1">
                 <field name="create_date"/>
-                <field name="product_id"/>
+                <field name="device_id"/>
             </graph>
         </field>
     </record>
@@ -240,7 +234,7 @@
         <field name="arch" type="xml">
             <pivot string="Repair Orders" sample="1">
                 <field name="create_date" type="row"/>
-                <field name="product_id" type="col"/>
+                <field name="device_id" type="col"/>
             </pivot>
         </field>
     </record>
@@ -398,7 +392,7 @@
 
         <menuitem id="repair_menu_config" name="Configuration" parent="menu_repair_order" groups="stock.group_stock_manager"/>
 
-        <menuitem id="menu_repair_pickup_location" name="Lieux" parent="repair_menu_config" action="action_repair_pickup_location" sequence="20"/>
+        <menuitem id="menu_repair_pickup_location" name="Lieux" parent="repair_menu_config" action="action_repair_pickup_location"/>
 
         <menuitem id="repair_menu_tag" name="Pannes" parent="repair_menu_config" action="action_repair_order_tag"/>
     </data>

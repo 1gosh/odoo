@@ -941,11 +941,6 @@ msgid "Repair Orders"
 msgstr "Ordres de réparation"
 
 #. module: repair
-#: model:ir.ui.menu,name:repair_custom.repair_menu_tag
-msgid "Repair Orders Tags"
-msgstr "Étiquettes des ordres de réparation"
-
-#. module: repair
 #: model:ir.model.fields,field_description:repair_custom.field_repair_order__name
 msgid "Repair Reference"
 msgstr "Référence de la réparation"

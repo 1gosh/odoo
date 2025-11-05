@@ -1,6 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from random import randint
+from datetime import date
 import uuid
 from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
@@ -47,7 +48,7 @@ class Repair(models.Model):
     _name = 'repair.order'
     _description = 'Repair Order'
     _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'priority desc, create_date desc'
+    _order = 'priority desc, entry_date desc'
     _check_company_auto = True
 
     @api.model
@@ -59,6 +60,12 @@ class Repair(models.Model):
     @api.model
     def _default_location(self):
        return self.env['repair.pickup.location'].search([('name', '=', 'Boutique')], limit=1).id
+
+    entry_date = fields.Date(
+        string="Date d'entrée",
+        default=lambda self:date.today(),
+        help="Date d'entrée de l'appareil. Par défaut, la date du jour.",
+    )
 
     device_picture = fields.Image()
     pickup_location_id = fields.Many2one(
@@ -86,6 +93,37 @@ class Repair(models.Model):
         readonly=True,
         help="Employé ayant démarré la réparation."
     )
+    device_unit_id = fields.Many2one(
+        "repair.device.unit",
+        string="Appareil du client",
+        ondelete="set null",
+        help="Appareil physique appartenant au client."
+    )
+
+    device_id = fields.Many2one(
+        "repair.device",
+        string="Modèle d’appareil",
+        ondelete="set null",
+        help="Modèle de l’appareil concerné par la réparation."
+    )
+    
+    serial_number = fields.Char(string="Numéro de série",help="Numéro de série de l’appareil à réparer.")
+
+    @api.model
+    def create(self, vals):
+        """Créer automatiquement un appareil physique s’il n’existe pas encore."""
+        order = super().create(vals)
+
+        if not order.device_unit_id and order.device_id and order.partner_id:
+            unit_vals = {
+                'device_id': order.device_id.id,
+                'partner_id': order.partner_id.id,
+                'serial_number': order.serial_number or False,
+            }
+            unit = self.env['repair.device.unit'].create(unit_vals)
+            order.device_unit_id = unit.id
+
+        return order
 
     tracking_token = fields.Char('Tracking Token', default=lambda self: uuid.uuid4().hex, readonly=True)
     tracking_url = fields.Char(
@@ -137,29 +175,6 @@ class Repair(models.Model):
         'Under Warranty',
         help='If ticked, the sales price will be set to 0 for all products transferred from the repair order.')
     schedule_date = fields.Datetime("Scheduled Date", default=fields.Datetime.now, index=True, required=True, copy=False)
-
-    # Product To Repair
-    move_id = fields.Many2one(  # Generated in 'action_repair_done', needed for traceability
-        'stock.move', 'Inventory Move',
-        copy=False, readonly=True, tracking=True, check_company=True)
-    product_id = fields.Many2one(
-        'product.product', string='Product to Repair',
-        domain="[('type', 'in', ['product', 'consu']), '|', ('company_id', '=', company_id), ('company_id', '=', False), '|', ('id', 'in', picking_product_ids), ('id', '=?', picking_product_id)]",
-        check_company=True)
-    product_qty = fields.Float(
-        'Product Quantity',
-        default=1.0, digits='Product Unit of Measure')
-    product_uom = fields.Many2one(
-        'uom.uom', 'Product Unit of Measure',
-        compute='compute_product_uom', store=True, precompute=True,
-        domain="[('category_id', '=', product_uom_category_id)]")
-    product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id')
-    lot_id = fields.Many2one(
-        'stock.lot', 'Lot/Serial',
-        compute="compute_lot_id", store=True,
-        domain="[('product_id','=', product_id), ('company_id', '=', company_id)]", check_company=True,
-        help="Products repaired are all belonging to this lot")
-    tracking = fields.Selection(string='Product Tracking', related="product_id.tracking", readonly=False)
 
     # Picking & Locations
     picking_type_id = fields.Many2one(

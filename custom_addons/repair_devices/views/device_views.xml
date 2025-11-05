@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <data>
+
+    <!-- VUE : Catalogue -->
+    <record id="view_repair_device_tree" model="ir.ui.view">
+        <field name="name">repair.device.tree</field>
+        <field name="model">repair.device</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="brand_id"/>
+                <field name="name"/>
+                <field name="variant"/>
+                <field name="category_id"/>
+                <field name="production_year"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_repair_device_form" model="ir.ui.view">
+        <field name="name">repair.device.form</field>
+        <field name="model">repair.device</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="display_name" string="Nom de l'appareil"/>
+                        <h1><field name="display_name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="brand_id"/>
+                            <field name="name"/>
+                            <field name="variant"/>
+                            <field name="category_id"/>
+                            <field name="production_year"/>
+                        </group>
+                        <group>
+                            <field name="wiki_url"/>
+                            <field name="description"/>
+                            <field name="image" widget="image"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- VUE : Marques -->
+    <record id="view_repair_device_brand_tree" model="ir.ui.view">
+        <field name="name">repair.device.brand.tree</field>
+        <field name="model">repair.device.brand</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="country"/>
+                <field name="founded_year"/>
+                <field name="website"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_repair_device_brand_form" model="ir.ui.view">
+        <field name="name">repair.device.brand.form</field>
+        <field name="model">repair.device.brand</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Catégorie"/>
+                        <h1><field name="name" placeholder="i.e. Marantz"/></h1>
+                    </div>
+                    <group>
+                        <field name="country"/>
+                        <field name="founded_year"/>
+                        <field name="website"/>
+                        <field name="wiki_url"/>
+                        <field name="description"/>
+                        <field name="logo" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- VUE : Catégories -->
+     
+    <record id="view_repair_device_category_form" model="ir.ui.view">
+        <field name="name">repair.device.category.form</field>
+        <field name="model">repair.device.category</field>
+        <field name="arch" type="xml">
+            <form string="Catégories d'appareils">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Catégorie"/>
+                        <h1><field name="name" placeholder="i.e. Ampli"/></h1>
+                    </div>
+                    <group name="first" col="2">
+                        <field name="parent_id" class="oe_inline"/>
+                    </group>
+                    <notebook>
+                        <page string="Appareils">
+                            <field name="device_model_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_repair_device_category_tree" model="ir.ui.view">
+        <field name="name">repair.device.category.tree</field>
+        <field name="model">repair.device.category</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <tree string="Catégories d'appareils">
+                <field name="display_name" string="Product Category"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_repair_device_category_search" model="ir.ui.view">
+        <field name="name">repair.device.category.search</field>
+        <field name="model">repair.device.category</field>
+        <field name="arch" type="xml">
+            <search string="Product Categories">
+                <field name="name" string="Product Categories"/>
+                <field name="parent_id"/>
+            </search>
+        </field>
+    </record>
+
+    </data>
+
+</odoo>
+
+<!-- <?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_repair_device_brand_tree" model="ir.ui.view">
+        <field name="name">repair.device.brand.tree</field>
+        <field name="model">repair.device.brand</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="country"/>
+                <field name="website"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_repair_device_brand_form" model="ir.ui.view">
+        <field name="name">repair.device.brand.form</field>
+        <field name="model">repair.device.brand</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="country"/>
+                        <field name="website"/>
+                        <field name="wiki_url"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_repair_device_tree" model="ir.ui.view">
+        <field name="name">repair.device.tree</field>
+        <field name="model">repair.device</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="brand_id"/>
+                <field name="model"/>
+                <field name="category"/>
+                <field name="year"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_repair_device_form" model="ir.ui.view">
+        <field name="name">repair.device.form</field>
+        <field name="model">repair.device</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label class="o_form_label" for="name"/>
+                        <h1 class="d-flex">
+                            <field name="display_name" string="Nom de l'appareil"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="name" readonly="1" string="Nom de l'appareil"/>
+                        <field name="brand_id" options="{'no_create_edit': False}"/>
+                        <field name="model"/>
+                        <field name="serial_number"/>
+                        <field name="category"/>
+                        <field name="year"/>
+                        <field name="wiki_url"/>
+                        <field name="description"/>
+                        <field name="image" widget="image"/>
+                    </group>
+                    <notebook>
+                        <page string="Réparations">
+                            <field name="repair_order_ids">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="state"/>
+                                    <field name="create_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo> -->

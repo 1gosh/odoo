@@ -19,7 +19,7 @@ The following topics are covered by this module:
     * Repair quotation report
     * Notes for the technician and for the final customer
 """,
-    'depends': ['web', 'stock', 'sale_management'],
+    'depends': ['repair_devices', 'web', 'stock', 'sale_management'],
     'data': [
         'security/ir.model.access.csv',
         'security/repair_security.xml',
@@ -37,6 +37,11 @@ The following topics are covered by this module:
         'report/repairorder_final.xml',
         'data/repair_data.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'repair_custom/static/src/css/views.css',
+        ],
+    },
     'post_init_hook': '_create_warehouse_data',
     'installable': True,
     'application': True,

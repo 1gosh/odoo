@@ -59,10 +59,10 @@
                         <t
                             t-esc="order.create_date.strftime('%d/%m/%Y') if order.create_date else ''" />
                     </li>
-                    <li>
+                    <!-- <li>
                         <strong>Technicien :</strong>
                         <t t-esc="dict(order._fields['technician'].selection).get(order.technician, '')"/>
-                    </li>
+                    </li> -->
                     <li>
                         <strong>Lieu de prise en charge :</strong>
                         <t

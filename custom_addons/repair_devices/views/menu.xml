@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+    <!-- MARQUES -->
+    <record id="action_repair_device_brand" model="ir.actions.act_window">
+        <field name="name">Marques</field>
+        <field name="res_model">repair.device.brand</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- CATÉGORIES -->
+    <!-- <record id="action_repair_device_category" model="ir.actions.act_window">
+        <field name="name">Catégories</field>
+        <field name="res_model">repair.device.category</field>
+        <field name="view_mode">tree,form</field>
+    </record> -->
+
+    <record id="action_repair_device_category" model="ir.actions.act_window">
+        <field name="name">Catégories</field>
+        <field name="res_model">repair.device.category</field>
+        <field name="search_view_id" ref="view_repair_device_category_search"/>
+        <field name="view_id" ref="view_repair_device_category_tree"/>
+    </record>
+    
+    <!-- MODÈLES -->
+    <record id="action_repair_device" model="ir.actions.act_window">
+        <field name="name">Catalogue d'appareils</field>
+        <field name="res_model">repair.device</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    
+
+    <menuitem id="menu_repair_device" name="Appareils Hi-Fi" sequence="50" 
+            web_icon="repair_devices,static/description/icon.png"/>
+
+    <menuitem id="repair_device_menu" name="Catalogue" parent="menu_repair_device" 
+            action="action_repair_device"/>
+
+    <menuitem id="repair_menu_config" name="Configuration" parent="menu_repair_device" groups="stock.group_stock_manager"/>
+
+    <menuitem id="menu_repair_device_category" name="Catégories" parent="repair_menu_config" 
+            action="action_repair_device_category"/>
+
+    <menuitem id="menu_repair_device_brand" name="Marques" parent="repair_menu_config" 
+            action="action_repair_device_brand"/>
+
+    </data>
+</odoo>
+
+
+
+<!-- <?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_repair_device" model="ir.actions.act_window">
+        <field name="name">Appareils</field>
+        <field name="res_model">repair.device</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_repair_device_brand" model="ir.actions.act_window">
+        <field name="name">Marques</field>
+        <field name="res_model">repair.device.brand</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="repair_menu_test" name="Appareils" parent="repair_custom.repair_menu_config" sequence="10"/>
+
+    <menuitem id="menu_repair_device"
+        name="Catalogue"
+        parent="repair_menu_test"
+        action="action_repair_device" />
+
+    <menuitem id="menu_repair_device_brand"
+        name="Marques"
+        parent="repair_menu_test"
+        action="action_repair_device_brand" />
+        
+</odoo> -->
