@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
     <data>
 
     <record id="repair_order_view_activity" model="ir.ui.view">
@@ -27,25 +26,19 @@
         <field name="model">repair.order</field>
         <field name="arch" type="xml">
             <tree string="Repairs order" multi_edit="1" sample="1" decoration-info="state == 'draft'">
-                <field name="company_id" column_invisible="True"/>
-                <!-- <field name="company_id" column_invisible="True" on_change="1" /> -->
                 <field name="priority" optional="show" widget="priority" nolabel="1" />
                 <field name="entry_date" optional="show" string="Date d'entrée" readonly="True"
-                    widget="datetime" options="{'show_time':false}" />
-                <!-- <field name="name" optional="hide" readonly="True" string="Ref. Réparation" /> -->
+                    width="50" widget="datetime" options="{'show_time':false}" />
                 <field name="state" optional="show" widget="badge" decoration-success="state == 'done'"
                     decoration-info="state == 'confirmed'" decoration-warning="state == 'under_repair'"
                     decoration-danger="state == 'cancel'" decoration-muted="state == 'draft'" readonly="True"
                     width="50" on_change="1" />
-                <field name="technician_employee_id" optional="show" />
-                <!-- <field name="product_id" readonly="1" optional="show" string="Appareil" width="200"
-                    on_change="1" /> -->
+                <field name="device_id_name" optional="show"></field>
                 <field name="partner_id" readonly="1" optional="show" string="Client" width="100" on_change="1" />
-                <field name="pickup_location_id" optional="show" readonly="True" />
                 <field name="repair_warranty" optional="show" readonly="True" />
-                <field name="multiple_devices" optional="show" readonly="True" />
-                <field name="additional_notes" optional="show" />
-                <field name="activity_exception_decoration" widget="activity_exception" />
+                <field name="pickup_location_id" optional="hide" readonly="True" />
+                <field name="technician_employee_id" optional="show"/>
+                <field name="notes" optional="show" />
             </tree>
         </field>
     </record>
@@ -55,7 +48,6 @@
         <field name="model">repair.order</field>
         <field name="arch" type="xml">
             <form string="Ordre de réparation">
-                <!-- Champs invisibles conservés strictement tels quels -->
                 <field name="company_id" invisible="1"/>
                 <field name="sale_order_id" invisible="1"/>
                 <field name="sale_order_line_id" invisible="1"/>
@@ -63,22 +55,27 @@
                 <header>
                     <button name="action_validate" invisible="state != 'draft'" type="object" string="Confirmer la réparation" class="oe_highlight" data-hotkey="v"/>
                     <button name="action_repair_start" invisible="state != 'confirmed'" type="object" string="Commencer la réparation" class="oe_highlight" data-hotkey="q"/>
-                    <button name="action_repair_end" invisible="state != 'under_repair'" type="object" string="Terminer la réparation" class="oe_highlight" data-hotkey="x"/>
+                    <button name="action_repair_end" invisible="state != 'under_repair'" type="object" string="Terminer la réparation" class="btn-success" data-hotkey="x"/>
                     <button name="action_create_sale_order" type="object" string="Créer le devis" invisible="False"/>
-                    <button name="action_repair_cancel" string="Annuler la réparation" type="object" invisible="state in ('done', 'cancel')" data-hotkey="l"/>
+                    <button name="action_repair_cancel" string="Annuler la réparation" type="object" invisible="state in ('done', 'cancel')" data-hotkey="l" class="btn-danger"/>
                     <button name="action_repair_cancel_draft" invisible="False" string="Marquer comme brouillon" type="object" data-hotkey="z"/>
+                    <button name="action_open_unit" string="Voir l’appareil" type="object" icon="fa-external-link" invisible="not unit_id" class="btn-info"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,under_repair,done" on_change="1"/>
+                    <field name="variant_ids_available" invisible="1"/>
+                    <field name="show_unit_field" invisible="1"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+        
+                    </div>
                     <div class="oe_title">
                         <label class="o_form_label" for="entry_date"/>
                         <h1 class="d-flex">
                             <!-- <field name="priority" widget="priority" class="me-3"/> -->
-                            <field readonly="state != 'draft'" name="entry_date" string="Date d'entrée"/>
+                            <field name="entry_date" string="Date d'entrée" widget="datetime" options="{'show_time':false}" readonly="state != 'draft'" />
                             <!-- <field name="device_picture" widget="image" class="ml-3 mb-5 h4"
                                 options="{'convert_to_webp':true,'zoom':true,'size':[0,90]}"
                                 invisible="not device_picture and state != 'draft'" /> -->
-                            <!-- <field class="float-end" name="name"/> -->
                         </h1>
                     </div>
                     <group>
@@ -93,32 +90,60 @@
                                 on_change="1"
                                 can_create="True"
                                 can_write="True"/>
-                            <field name="device_id"/>
-                            <field name="tag_ids"
-                                   widget="many2many_tags"
-                                   options="{'color_field': 'color', 'no_create_edit': True}"
-                                   force_save="1"
-                                   placeholder="Entrer les pannes"
-                                   readonly="state != 'draft'"
-                                   required="True"
-                                   string="Pannes"
-                                   can_create="True"
-                                   can_write="True"/>
                         </group>
                         <group>
-                            <field name="multiple_devices" widget="boolean_toggle" force_save="1" readonly="state != 'draft'"/>
                             <field name="repair_warranty" required="False" force_save="1" readonly="state != 'draft'"/>
                             <field name="pickup_location_id" placeholder="Sélectionner un lieu..." readonly="state not in ['draft']"/>
-                            <field name="technician_employee_id" readonly="1"/>
-                            <field name="additional_notes" required="False" placeholder="Écrire ici ..." string="Notes"/>
                         </group>
                     </group>
-                    <p class="text-muted small">
-                        Réf. <field name="name" readonly="1" nolabel="1" class="d-inline"/>
-                    </p>
+                    <!-- <p class="text-muted small">
+                        Réf. 
+                    </p> -->
                     <notebook>
-                        <page string="Notes de la réparation" name="repair_notes">
-                            <!-- <field name="internal_notes" placeholder="Ajouter des notes internes." widget="html"/> -->
+                        <page string="Appareil">
+                            <group>
+                                <group>
+                                    <field name="unit_id"
+                                        domain="[('partner_id', '=', partner_id)]"
+                                        options="{'no_create': True, 'no_open': False}"
+                                        invisible="not show_unit_field"
+                                        readonly="state != 'draft'"/>
+                                    <field name="device_id"
+                                        required="True"
+                                        context="{'default_brand_id': False}"
+                                        options="{'no_create_edit': False}"
+                                        readonly="state != 'draft'"
+                                        placeholder="Sélectionner ou créer un modèle d'appareil..."/>
+                                    <field name="variant_id"
+                                        domain="[('id','in', variant_ids_available)]"
+                                        context="{'default_device_id': device_id}"
+                                        readonly="state != 'draft'"
+                                        placeholder="Sélectionner une variante (optionnel)"
+                                        invisible ="(not device_id) or (not variant_id and (state != 'draft'))"/>
+                                    <field name="serial_number" placeholder="Numéro de série (ou laisser vide pour auto)" readonly="state != 'draft'" invisible ="not device_id"/>
+                                </group>
+                                <group>
+                                    <field name="tag_ids"   
+                                        widget="many2many_tags"
+                                        options="{'color_field': 'color', 'no_create_edit': True}"
+                                        force_save="1"
+                                        placeholder="Entrer les pannes"
+                                        readonly="state != 'draft'"
+                                        required="True"
+                                        string="Pannes"
+                                        can_create="True"
+                                        can_write="True"/>
+                                    <field name="notes" required="False" placeholder="Écrire ici ..." string="Notes"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Technique">
+                            <group>
+                                <field name="technician_employee_id" readonly="1"/>
+                            </group>
+                            <group for="internal_notes">
+                                <field name="internal_notes" widget="html" placeholder="ex: - Remplacement des condensateurs d'alimentation"/>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
@@ -133,7 +158,6 @@
             <kanban class="o_kanban_mobile" sample="1" quick_create="false">
                 <field name="company_id" invisible="1"/>
                 <field name="name"/>
-                <!-- <field name="product_id"/> -->
                 <field name="partner_id"/>
                 <field name="state"/>
                 <field name="activity_state"/>
@@ -263,7 +287,7 @@
             <field name="name">repair.tag.form</field>
             <field name="model">repair.tags</field>
             <field name="arch" type="xml">
-                <form string="Repair Tags">
+                <form string="Pannes">
                     <sheet>
                         <group>
                             <field name="name"/>
@@ -277,7 +301,7 @@
             <field name="name">repair.tag.tree</field>
             <field name="model">repair.tags</field>
             <field name="arch" type="xml">
-                <tree string="Tags" editable="bottom">
+                <tree string="Pannes" editable="bottom">
                     <field name="name"/>
                 </tree>
             </field>
@@ -356,8 +380,8 @@
             </field>
         </record>
 
-        <menuitem id="menu_repair_order" groups="stock.group_stock_user" name="Repairs" sequence="165"
-                  web_icon="repair,static/description/icon.png"/>
+        <menuitem id="menu_repair_order" groups="stock.group_stock_user" name="Repairs" sequence="28"
+                  web_icon="repair_custom,static/description/icon.png"/>
 
         <menuitem id="repair_order_menu" name="Orders" action="action_repair_order_tree" groups="stock.group_stock_user"
                   parent="menu_repair_order"/>

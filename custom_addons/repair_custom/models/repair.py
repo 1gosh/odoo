@@ -15,22 +15,17 @@ class Repair(models.Model):
     _order = 'priority desc, entry_date desc'
     _check_company_auto = True
 
+    entry_date = fields.Datetime(
+        string="Date d'entrée",
+        default=lambda self: fields.Datetime.now(),
+        help="Date et heure d'entrée de l'appareil."
+    )
+    device_picture = fields.Image()
+
     @api.model
     def _default_location(self):
        return self.env['repair.pickup.location'].search([('name', '=', 'Boutique')], limit=1).id
 
-    entry_date = fields.Date(
-        string="Date d'entrée",
-        default=lambda self:date.today(),
-        help="Date d'entrée de l'appareil. Par défaut, la date du jour.",
-    )
-    device_id = fields.Many2one(
-        'repair.device',
-        string="Appareil",
-        help="",
-        required=True
-    )
-    device_picture = fields.Image()
     pickup_location_id = fields.Many2one(
         'repair.pickup.location',
         string="Lieu de prise en charge",
@@ -38,9 +33,10 @@ class Repair(models.Model):
         required=True,
         default=_default_location
     )
+
     multiple_devices = fields.Boolean(string="Plusieurs appareils")
-    repair_warranty = fields.Selection([('aucune', 'Aucune'), ('sav', 'SAV'), ('sar', 'SAR'),], string="Sous garantie", default='aucune')
-    additional_notes = fields.Text(string="Notes additionnelles")
+    repair_warranty = fields.Selection([('aucune', 'Aucune'), ('sav', 'SAV'), ('sar', 'SAR'),], string="Garantie", default='aucune')
+    notes = fields.Text(string="Notes additionnelles")
     
     technician_user_id = fields.Many2one(
         'res.users',
@@ -54,7 +50,7 @@ class Repair(models.Model):
         readonly=True,
         help="Employé ayant démarré la réparation."
     )
-
+    user_id = fields.Many2one('res.users', string="Responsible", default=lambda self: self.env.user, check_company=True)
     tracking_token = fields.Char('Tracking Token', default=lambda self: uuid.uuid4().hex, readonly=True)
     tracking_url = fields.Char(
     'Tracking URL',
@@ -68,7 +64,7 @@ class Repair(models.Model):
             rec.tracking_url = f"{base_url}/repair/tracking/{rec.tracking_token}"
 
     name = fields.Char(
-        'Repair Reference',
+        'Référence',
         default='New', index='trigram',
         copy=False, required=True,
         readonly=True)
@@ -89,19 +85,114 @@ class Repair(models.Model):
              "* The \'Repaired\' status is set when repairing is completed.\n"
              "* The \'Cancelled\' status is used when user cancel repair order.")
     priority = fields.Selection([('0', 'Normal'), ('1', 'Urgent')], default='0', string="Priority")
-    partner_id = fields.Many2one(
+    partner_id = fields.Many2one(   
         'res.partner', 'Customer',
         index=True, check_company=True, change_default=True,
         help='Choose partner for whom the order will be invoiced and delivered. You can find a partner by its Name, TIN, Email or Internal Reference.')
-    user_id = fields.Many2one('res.users', string="Responsible", default=lambda self: self.env.user, check_company=True)
-    tag_ids = fields.Many2many('repair.tags', string="Tags")
 
-    # Product To Repair
-    lot_id = fields.Many2one(
-        'stock.lot', 'Lot/Serial',
-        compute="compute_lot_id", store=True,
-        domain="[('product_id','=', product_id), ('company_id', '=', company_id)]", check_company=True,
-        help="Products repaired are all belonging to this lot")
+    # --- Appareil lié à la réparation ---
+    device_id = fields.Many2one(
+        'repair.device',
+        string="Modèle",
+        ondelete="restrict",
+        help="Modèle d'appareil (ex: Marantz 2226B)."
+    )
+    variant_id = fields.Many2one(
+        'repair.device.variant',
+        string="Variante",
+        help="Variante du modèle (ex: MKII, révision, couleur, etc.)."
+    )
+    variant_ids_available = fields.Many2many(
+        'repair.device.variant',
+        compute='_compute_variant_ids_available',
+        string="Variantes dispo.",
+        store=False,
+    )
+
+    @api.depends('device_id', 'device_id.variant_ids')
+    def _compute_variant_ids_available(self):
+        for rec in self:
+            rec.variant_ids_available = rec.device_id.variant_ids if rec.device_id else False
+
+    @api.onchange('device_id')
+    def _onchange_device_id_clear_variant(self):
+        if self.device_id:
+            self.variant_id = False
+            
+    serial_number = fields.Char(
+        "N° de série",
+        related="unit_id.serial_number",
+        store=True,
+        readonly=False,
+        help="Numéro de série de l'appareil lié. Si aucune unité n'est encore créée, il sera rempli lors de la confirmation."
+    )
+    device_id_name = fields.Char(
+        "Appareil",
+        related="unit_id.device_name",
+        store=True,
+        readonly=False
+    )
+    unit_id = fields.Many2one(
+        'repair.device.unit',
+        string="Appareil (unité physique)",
+        readonly=True,
+        domain="[('device_id', '=', device_id), ('partner_id', '=', partner_id)]",
+        help="Appareil physique unique correspondant au modèle/variante/numéro de série."
+    )
+    tag_ids = fields.Many2many('repair.tags', string="Tags")
+    internal_notes = fields.Text("Notes de réparation")
+
+    @api.onchange('unit_id')
+    def _onchange_unit_id(self):
+        """Remplit les champs liés quand une unité est sélectionnée"""
+        for rec in self:
+            if rec.unit_id:
+                rec.serial_number = rec.unit_id.serial_number
+                rec.device_id = rec.unit_id.device_id
+                rec.variant_id = rec.unit_id.variant_id
+
+    def action_open_unit(self):
+        """Ouvre directement la fiche de l'unité (en utilisant l'action du module repair_devices)."""
+        self.ensure_one()
+        if not self.unit_id:
+            raise UserError(_("Aucun appareil n'est associé à cette réparation."))
+
+        # récupère l’action existante dans le module repair_devices
+        action = self.env.ref('repair_devices.action_repair_device_unit').read()[0]
+
+        # surcharge les valeurs
+        action.update({
+            'views': [(False, 'form')],
+            'res_id': self.unit_id.id,
+            'target': 'current',
+        })
+        return action
+
+     # Indicateur pratique pour la vue: afficher le champ unit seulement si utile
+    show_unit_field = fields.Boolean(
+        string="Afficher champ unité",
+        compute="_compute_show_unit_field",
+    )
+
+    @api.depends('unit_id', 'partner_id', 'state')
+    def _compute_show_unit_field(self):
+        Unit = self.env['repair.device.unit']
+        for rec in self:
+            # Par défaut, caché
+            show = False
+
+            if rec.state == 'draft':
+                # visible seulement en brouillon et si le partenaire a des unités
+                has_partner_units = False
+                if rec.partner_id:
+                    has_partner_units = bool(Unit.search([('partner_id', '=', rec.partner_id.id)], limit=1))
+                show = bool(rec.unit_id) or has_partner_units
+            rec.show_unit_field = show
+
+    @api.onchange('partner_id')
+    def _onchange_partner_clear_unit(self):
+        if self.partner_id:
+            self.unit_id = False
 
     # Sale Order Binding
     sale_order_id = fields.Many2one(
@@ -200,7 +291,28 @@ class Repair(models.Model):
     def action_validate(self):
         self.ensure_one()
 
-        return self._action_repair_confirm()        
+        # Si une variante a été saisie manuellement, l'associer au modèle si nécessaire
+        if self.variant_id and self.variant_id not in self.device_id.variant_ids:
+            self.device_id.write({'variant_ids': [(4, self.variant_id.id)]})
+
+        # 👉 S’il y a déjà une unité sélectionnée manuellement → ne rien créer
+        if self.unit_id:
+            return self._action_repair_confirm()
+
+        # 👉 Sinon, créer une nouvelle unité automatiquement
+        if self.device_id and self.partner_id:
+            sn = self.serial_number or f"{uuid.uuid4().hex[:8].upper()}"
+            vals = {
+                'device_id': self.device_id.id,
+                'partner_id': self.partner_id.id,
+                'serial_number': sn,
+            }
+            if self.variant_id:
+                vals['variant_id'] = self.variant_id.id
+            new_unit = self.env['repair.device.unit'].create(vals)
+            self.unit_id = new_unit
+
+        return self._action_repair_confirm() 
 
     def action_view_sale_order(self):
         return {
@@ -209,6 +321,13 @@ class Repair(models.Model):
             "views": [[False, "form"]],
             "res_id": self.sale_order_id.id,
         }
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', 'New') == 'New':
+                vals['name'] = self.env['ir.sequence'].next_by_code('repair.order') or 'New'
+        return super(Repair, self).create(vals_list)
 
     def print_repair_order(self):
         return self.env.ref('repair.action_report_repair_order').report_action(self)
@@ -238,7 +357,6 @@ class RepairPickupLocation(models.Model):
             else:
                 location.display_name = location.name
 
-
 class RepairTags(models.Model):
     """ Tags of Repair's tasks """
     _name = "repair.tags"
@@ -253,3 +371,34 @@ class RepairTags(models.Model):
     _sql_constraints = [
         ('name_uniq', 'unique (name)', "Tag name already exists!"),
     ]
+
+class RepairDeviceUnit(models.Model):
+    _inherit = 'repair.device.unit'
+
+    repair_order_ids = fields.One2many(
+        'repair.order',
+        'unit_id',
+        string="Réparations associées"
+    )
+    repair_order_count = fields.Integer(
+        string="Réparations",
+        compute='_compute_repair_order_count'
+    )
+
+    def _compute_repair_order_count(self):
+        for rec in self:
+            rec.repair_order_count = self.env['repair.order'].search_count([
+                ('unit_id', '=', rec.id)
+            ])
+
+    def action_view_repairs(self):
+        """Ouvre les ordres de réparation associés à cette unité."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Réparations associées',
+            'res_model': 'repair.order',
+            'view_mode': 'tree,form',
+            'domain': [('unit_id', '=', self.id)],
+            'context': {'default_unit_id': self.id},
+        }

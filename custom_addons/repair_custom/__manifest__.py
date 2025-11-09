@@ -26,6 +26,8 @@ The following topics are covered by this module:
         'views/repair_views.xml',
         'views/sale_order_views.xml',
         'views/tracking_views.xml',
+        'views/repair_device_views.xml',
+        'views/repair_order_sequence.xml',
         'report/repair_reports.xml',
         'report/repairorder_final.xml',
         'data/repair_data.xml',
@@ -35,7 +37,6 @@ The following topics are covered by this module:
             'repair_custom/static/src/css/views.css',
         ],
     },
-    'post_init_hook': '_create_warehouse_data',
     'installable': True,
     'application': True,
 }
